@@ -1,0 +1,2251 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>LifePlanner</title>
+
+<style>
+:root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1f2937;
+    --sub: #6b7280;
+    --border: #e5e7eb;
+    --primary: #111827;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family:
+        "Microsoft JhengHei",
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+    background: var(--bg);
+    color: var(--text);
+}
+
+.app {
+    max-width: 1000px;
+    margin: auto;
+    padding: 20px 20px 100px;
+}
+
+header {
+    margin-bottom: 20px;
+}
+
+h1 {
+    margin: 0 0 5px;
+}
+
+.sub {
+    color: var(--sub);
+    font-size: 14px;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+
+    padding: 18px;
+    margin-bottom: 16px;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.between {
+    justify-content: space-between;
+}
+
+button {
+    border: 1px solid var(--border);
+    background: white;
+    padding: 9px 13px;
+
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #f3f4f6;
+}
+
+.primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.danger {
+    color: #b91c1c;
+}
+
+select,
+input,
+textarea {
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 9px;
+
+    font: inherit;
+}
+
+textarea {
+    width: 100%;
+    min-height: 80px;
+}
+
+.task {
+    display: grid;
+
+    grid-template-columns:
+        140px
+        120px
+        1fr
+        130px;
+
+    gap: 12px;
+
+    align-items: center;
+
+    padding: 13px 0;
+
+    border-bottom:
+        1px solid var(--border);
+}
+
+.task:last-child {
+    border-bottom: 0;
+}
+
+.task-time {
+    font-weight: bold;
+}
+
+.task-cat {
+    color: var(--sub);
+}
+
+.score {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.progress {
+    height: 10px;
+
+    background: #e5e7eb;
+
+    border-radius: 999px;
+
+    overflow: hidden;
+
+    margin-top: 5px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #111827;
+}
+
+.tab {
+    display: none;
+}
+
+.tab.active {
+    display: block;
+}
+
+nav {
+    position: fixed;
+
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    background: rgba(255,255,255,.95);
+
+    border-top:
+        1px solid var(--border);
+
+    display: flex;
+
+    justify-content: center;
+}
+
+.nav-inner {
+    width: 100%;
+    max-width: 1000px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+}
+
+nav button {
+    border: 0;
+    border-radius: 0;
+
+    padding: 16px 5px;
+
+    background: transparent;
+}
+
+nav button.active {
+    font-weight: bold;
+    background: #f3f4f6;
+}
+
+.history-item {
+    padding: 12px 0;
+
+    border-bottom:
+        1px solid var(--border);
+}
+
+label {
+    display: block;
+
+    font-size: 13px;
+
+    color: var(--sub);
+
+    margin-bottom: 5px;
+}
+
+dialog {
+    width: calc(100% - 30px);
+    max-width: 500px;
+
+    border: 0;
+
+    border-radius: 16px;
+
+    padding: 0;
+}
+
+dialog::backdrop {
+    background:
+        rgba(0,0,0,.4);
+}
+
+.dialog-body {
+    padding: 20px;
+}
+
+.field {
+    margin-bottom: 15px;
+}
+
+.field input,
+.field select {
+    width: 100%;
+}
+
+.empty {
+    text-align: center;
+
+    color: var(--sub);
+
+    padding: 30px;
+}
+
+@media(max-width: 700px) {
+
+    .app {
+        padding: 15px 12px 90px;
+    }
+
+    .task {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+
+<h1>🎯 LifePlanner</h1>
+
+<div class="sub" id="todayText"></div>
+
+</header>
+
+
+<!-- ================= 今日 ================= -->
+
+<section
+    id="todayTab"
+    class="tab active">
+
+<div class="card">
+
+<div class="row between">
+
+<div class="row">
+
+<button onclick="changeDate(-1)">
+← 前一天
+</button>
+
+<button onclick="goToday()">
+今天
+</button>
+
+<button onclick="changeDate(1)">
+後一天 →
+</button>
+
+</div>
+
+<div
+    class="score"
+    id="dayScore">
+
+0%
+
+</div>
+
+</div>
+
+
+<h2 id="selectedDate"></h2>
+
+<div id="todayTasks"></div>
+
+</div>
+
+</section>
+
+
+
+<!-- ================= 本週 ================= -->
+
+<section
+    id="weekTab"
+    class="tab">
+
+<div class="card">
+
+<h2>📊 本週 Dashboard</h2>
+
+<div id="weekSummary"></div>
+
+<div
+    id="habitStats"
+    style="margin-top:20px">
+
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- ================= 行程 ================= -->
+
+<section
+    id="planTab"
+    class="tab">
+
+<div class="card">
+
+<div class="row between">
+
+<div>
+
+<label>
+選擇星期
+</label>
+
+<select id="planDay"></select>
+
+</div>
+
+
+<button
+    class="primary"
+    onclick="openAddTask()">
+
+＋ 新增任務
+
+</button>
+
+</div>
+
+
+<div
+    id="planTasks"
+    style="margin-top:15px">
+
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- ================= 歷史 ================= -->
+
+<section
+    id="historyTab"
+    class="tab">
+
+<div class="card">
+
+<div class="row between">
+
+<h2>
+📈 歷史紀錄
+</h2>
+
+<button onclick="exportData()">
+匯出備份
+</button>
+
+</div>
+
+
+<p class="sub">
+
+資料儲存在目前裝置的瀏覽器中。
+建議偶爾使用「匯出備份」。
+
+</p>
+
+
+<div id="historyList"></div>
+
+</div>
+
+</section>
+
+</div>
+
+
+
+<!-- ================= 導航 ================= -->
+
+<nav>
+
+<div class="nav-inner">
+
+<button
+    class="active"
+    onclick="switchTab('today',this)">
+
+🏠<br>
+今日
+
+</button>
+
+
+<button
+    onclick="switchTab('week',this)">
+
+📊<br>
+本週
+
+</button>
+
+
+<button
+    onclick="switchTab('plan',this)">
+
+📅<br>
+行程
+
+</button>
+
+
+<button
+    onclick="switchTab('history',this)">
+
+📈<br>
+歷史
+
+</button>
+
+</div>
+
+</nav>
+
+
+
+<!-- ================= 任務視窗 ================= -->
+
+<dialog id="taskDialog">
+
+<div class="dialog-body">
+
+<h2 id="dialogTitle">
+新增任務
+</h2>
+
+
+<div class="field">
+
+<label>
+時段
+</label>
+
+<input
+    id="taskTime"
+    maxlength="50"
+    placeholder="例如 19:30 - 20:30">
+
+</div>
+
+
+<div class="field">
+
+<label>
+分類
+</label>
+
+<select id="taskCat">
+
+<option>論文</option>
+<option>運動</option>
+<option>外語</option>
+<option>閱讀</option>
+<option>約會/家人</option>
+<option>日常/放鬆</option>
+
+</select>
+
+</div>
+
+
+<div class="field">
+
+<label>
+任務內容
+</label>
+
+<textarea
+    id="taskDesc"
+    maxlength="300">
+
+</textarea>
+
+</div>
+
+
+<div
+    class="row"
+    style="justify-content:flex-end">
+
+<button onclick="closeDialog()">
+取消
+</button>
+
+<button
+    class="primary"
+    onclick="saveTask()">
+
+儲存
+
+</button>
+
+</div>
+
+</div>
+
+</dialog>
+
+
+
+<script>
+
+/* ================= 基本設定 ================= */
+
+const DAYS = [
+
+"Monday",
+"Tuesday",
+"Wednesday",
+"Thursday",
+"Friday",
+"Saturday",
+"Sunday"
+
+];
+
+
+const DAY_ZH = {
+
+Monday:"星期一",
+Tuesday:"星期二",
+Wednesday:"星期三",
+Thursday:"星期四",
+Friday:"星期五",
+Saturday:"星期六",
+Sunday:"星期日"
+
+};
+
+
+const STATUS = [
+
+"未開始",
+"進行中",
+"變更/延期",
+"已完成"
+
+];
+
+
+const WEIGHT = {
+
+"未開始":0,
+"進行中":0.5,
+"變更/延期":0.2,
+"已完成":1
+
+};
+
+
+const TARGETS = {
+
+"論文":3,
+"運動":4,
+"外語":2,
+"閱讀":2,
+"約會/家人":3
+
+};
+
+
+const STORAGE_KEY =
+"LifePlanner_Data_V1";
+
+
+
+/* ================= 預設行程 ================= */
+
+const DEFAULT_SCHEDULE = {
+
+
+Monday: [
+
+{
+time:"19:30 - 20:30",
+cat:"日常/放鬆",
+desc:"路上買晚餐，回家享用、洗碗並稍微休息"
+},
+
+{
+time:"20:30 - 21:15",
+cat:"日常/放鬆",
+desc:"洗個舒服的熱水澡，換上舒服睡衣，切換下班模式"
+},
+
+{
+time:"21:15 - 23:15",
+cat:"論文",
+desc:"專心撰寫論文、整理文獻"
+},
+
+{
+time:"23:15 - 24:00",
+cat:"日常/放鬆",
+desc:"放空、聽音樂、滑手機，準備明天衣服與隨身物品"
+}
+
+],
+
+
+
+Tuesday: [
+
+{
+time:"19:30 - 20:30",
+cat:"日常/放鬆",
+desc:"路上買晚餐回家享用"
+},
+
+{
+time:"20:30 - 21:15",
+cat:"外語",
+desc:"背單字、聽英文或練習外語"
+},
+
+{
+time:"21:15 - 22:00",
+cat:"運動",
+desc:"居家核心健身、有氧或自主拉筋"
+},
+
+{
+time:"22:00 - 22:45",
+cat:"日常/放鬆",
+desc:"洗熱水澡，換舒服睡衣"
+},
+
+{
+time:"22:45 - 23:30",
+cat:"閱讀",
+desc:"享受輕鬆的課外讀物"
+},
+
+{
+time:"23:30 - 24:00",
+cat:"日常/放鬆",
+desc:"整理明天出門包包與衣服"
+}
+
+],
+
+
+
+Wednesday: [
+
+{
+time:"19:30 - 20:30",
+cat:"日常/放鬆",
+desc:"買晚餐回家享用、洗碗與休息"
+},
+
+{
+time:"20:30 - 21:15",
+cat:"日常/放鬆",
+desc:"洗澡，建立今晚的專注儀式"
+},
+
+{
+time:"21:15 - 23:15",
+cat:"論文",
+desc:"2 小時專心處理論文"
+},
+
+{
+time:"23:15 - 24:00",
+cat:"日常/放鬆",
+desc:"無壓力放空放鬆"
+}
+
+],
+
+
+
+Thursday: [
+
+{
+time:"19:30 - 20:30",
+cat:"日常/放鬆",
+desc:"吃晚餐"
+},
+
+{
+time:"20:30 - 21:15",
+cat:"外語",
+desc:"外語聽力、閱讀或日常會話"
+},
+
+{
+time:"21:15 - 22:00",
+cat:"運動",
+desc:"居家運動"
+},
+
+{
+time:"22:00 - 22:45",
+cat:"日常/放鬆",
+desc:"運動完洗澡"
+},
+
+{
+time:"22:45 - 23:30",
+cat:"閱讀",
+desc:"閱讀喜歡的課外書"
+},
+
+{
+time:"23:30 - 24:00",
+cat:"日常/放鬆",
+desc:"整理週五東西"
+}
+
+],
+
+
+
+Friday: [
+
+{
+time:"17:30 - 23:00",
+cat:"約會/家人",
+desc:"下班後約會、吃飯、看電影或逛街"
+},
+
+{
+time:"23:00 - 24:00",
+cat:"日常/放鬆",
+desc:"到家洗澡放鬆"
+}
+
+],
+
+
+
+Saturday: [
+
+{
+time:"12:00 以前",
+cat:"日常/放鬆",
+desc:"睡到自然醒"
+},
+
+{
+time:"12:00 - 18:00",
+cat:"約會/家人",
+desc:"午餐、戶外約會或雙人運動"
+},
+
+{
+time:"18:00 - 21:00",
+cat:"日常/放鬆",
+desc:"晚餐、洗澡"
+},
+
+{
+time:"21:00 - 24:00",
+cat:"日常/放鬆",
+desc:"看劇、打電動、滑手機自由放鬆"
+}
+
+],
+
+
+
+Sunday: [
+
+{
+time:"12:00 以前",
+cat:"日常/放鬆",
+desc:"睡到自然醒"
+},
+
+{
+time:"12:00 - 19:00",
+cat:"約會/家人",
+desc:"陪伴家人、吃飯、逛街或聊天"
+},
+
+{
+time:"19:00 - 21:00",
+cat:"論文",
+desc:"週末論文衝刺"
+},
+
+{
+time:"21:00 - 21:45",
+cat:"運動",
+desc:"瑜珈、拉筋或舒緩運動"
+},
+
+{
+time:"21:45 - 22:30",
+cat:"日常/放鬆",
+desc:"洗澡"
+},
+
+{
+time:"22:30 - 24:00",
+cat:"日常/放鬆",
+desc:"整理週一物品並準備睡覺"
+}
+
+]
+
+};
+
+
+
+/* ================= 資料 ================= */
+
+function clone(obj) {
+
+return JSON.parse(
+JSON.stringify(obj)
+);
+
+}
+
+
+function loadData() {
+
+try {
+
+const raw =
+localStorage.getItem(
+STORAGE_KEY
+);
+
+if (raw) {
+
+const parsed =
+JSON.parse(raw);
+
+if (
+parsed.schedule &&
+parsed.history
+) {
+
+return parsed;
+
+}
+
+}
+
+}
+catch(e) {
+
+console.error(e);
+
+}
+
+
+return {
+
+schedule:
+clone(DEFAULT_SCHEDULE),
+
+history:{}
+
+};
+
+}
+
+
+let data =
+loadData();
+
+
+let selectedDate =
+new Date();
+
+
+selectedDate.setHours(
+0,0,0,0
+);
+
+
+
+function saveData() {
+
+localStorage.setItem(
+STORAGE_KEY,
+JSON.stringify(data)
+);
+
+}
+
+
+
+/* ================= 日期工具 ================= */
+
+function iso(date) {
+
+return (
+
+date.getFullYear()
++ "-"
++ String(
+date.getMonth()+1
+).padStart(2,"0")
++ "-"
++ String(
+date.getDate()
+).padStart(2,"0")
+
+);
+
+}
+
+
+function engDay(date) {
+
+return DAYS[
+(date.getDay()+6)%7
+];
+
+}
+
+
+function dateText(date) {
+
+return (
+iso(date)
++ " "
++ DAY_ZH[
+engDay(date)
+]
+);
+
+}
+
+
+
+/* ================= 狀態 ================= */
+
+function statusesForDate(date) {
+
+const tasks =
+data.schedule[
+engDay(date)
+] || [];
+
+
+let statuses =
+Array.isArray(
+data.history[
+iso(date)
+]
+)
+?
+[
+...data.history[
+iso(date)
+]
+]
+:
+[];
+
+
+while (
+statuses.length
+<
+tasks.length
+) {
+
+statuses.push(
+"未開始"
+);
+
+}
+
+
+return statuses.slice(
+0,
+tasks.length
+);
+
+}
+
+
+
+/* ================= 今日 ================= */
+
+function renderToday() {
+
+document.getElementById(
+"selectedDate"
+).textContent =
+dateText(
+selectedDate
+);
+
+
+const tasks =
+data.schedule[
+engDay(selectedDate)
+] || [];
+
+
+const statuses =
+statusesForDate(
+selectedDate
+);
+
+
+const container =
+document.getElementById(
+"todayTasks"
+);
+
+
+container.innerHTML = "";
+
+
+if (
+tasks.length === 0
+) {
+
+container.innerHTML =
+'<div class="empty">今天沒有規劃任務</div>';
+
+}
+
+
+tasks.forEach(
+(task,index) => {
+
+
+const div =
+document.createElement(
+"div"
+);
+
+
+div.className =
+"task";
+
+
+const select =
+STATUS.map(
+status =>
+
+`
+<option
+${status === statuses[index]
+? "selected"
+: ""}>
+
+${status}
+
+</option>
+`
+
+).join("");
+
+
+div.innerHTML = `
+
+<div class="task-time">
+
+${escapeHTML(
+task.time
+)}
+
+</div>
+
+
+<div class="task-cat">
+
+${escapeHTML(
+task.cat
+)}
+
+</div>
+
+
+<div>
+
+${escapeHTML(
+task.desc
+)}
+
+</div>
+
+
+<div>
+
+<select
+onchange="updateStatus(${index},this.value)">
+
+${select}
+
+</select>
+
+</div>
+
+`;
+
+
+container.appendChild(
+div
+);
+
+
+}
+);
+
+
+let score = 0;
+
+
+if (
+statuses.length
+) {
+
+score =
+statuses.reduce(
+(sum,status) =>
+sum + WEIGHT[status],
+0
+)
+/
+statuses.length;
+
+}
+
+
+document.getElementById(
+"dayScore"
+).textContent =
+
+"執行得分："
++
+Math.round(
+score * 100
+)
++
+"%";
+
+}
+
+
+
+function updateStatus(
+index,
+status
+) {
+
+const statuses =
+statusesForDate(
+selectedDate
+);
+
+
+statuses[index] =
+status;
+
+
+data.history[
+iso(selectedDate)
+] =
+statuses;
+
+
+saveData();
+
+renderAll();
+
+}
+
+
+
+function changeDate(days) {
+
+selectedDate.setDate(
+selectedDate.getDate()
++
+days
+);
+
+renderToday();
+
+}
+
+
+function goToday() {
+
+selectedDate =
+new Date();
+
+selectedDate.setHours(
+0,0,0,0
+);
+
+renderToday();
+
+}
+
+
+
+/* ================= Dashboard ================= */
+
+function weekStart() {
+
+const today =
+new Date();
+
+today.setHours(
+0,0,0,0
+);
+
+
+const offset =
+(today.getDay()+6)%7;
+
+
+today.setDate(
+today.getDate()
+-
+offset
+);
+
+
+return today;
+
+}
+
+
+
+function renderWeek() {
+
+const start =
+weekStart();
+
+
+const end =
+new Date(start);
+
+
+end.setDate(
+start.getDate()+6
+);
+
+
+let totalTasks = 0;
+
+let totalScore = 0;
+
+let completed = 0;
+
+let loggedDays = 0;
+
+
+const habitCounts = {};
+
+
+Object.keys(
+TARGETS
+).forEach(
+
+key =>
+habitCounts[key] = 0
+
+);
+
+
+for (
+let i=0;
+i<7;
+i++
+) {
+
+const date =
+new Date(start);
+
+
+date.setDate(
+start.getDate()+i
+);
+
+
+const tasks =
+data.schedule[
+engDay(date)
+] || [];
+
+
+const statuses =
+statusesForDate(
+date
+);
+
+
+totalTasks +=
+tasks.length;
+
+
+if (
+data.history[
+iso(date)
+]
+) {
+
+loggedDays++;
+
+}
+
+
+tasks.forEach(
+(task,index) => {
+
+
+const status =
+statuses[index];
+
+
+totalScore +=
+WEIGHT[status];
+
+
+if (
+status === "已完成"
+) {
+
+completed++;
+
+
+if (
+habitCounts[
+task.cat
+] !== undefined
+) {
+
+habitCounts[
+task.cat
+]++;
+
+}
+
+}
+
+}
+);
+
+}
+
+
+const percentage =
+totalTasks
+?
+totalScore / totalTasks
+:
+0;
+
+
+document.getElementById(
+"weekSummary"
+).innerHTML = `
+
+<strong>
+${iso(start)}
+～
+${iso(end)}
+</strong>
+
+<p>
+本週整體執行得分：
+<strong>
+${Math.round(
+percentage*100
+)}%
+</strong>
+</p>
+
+<div class="sub">
+
+完成任務：
+${completed}/${totalTasks}
+
+　
+
+已記錄天數：
+${loggedDays}/7
+
+</div>
+
+`;
+
+
+const box =
+document.getElementById(
+"habitStats"
+);
+
+
+box.innerHTML = "";
+
+
+Object.entries(
+TARGETS
+).forEach(
+
+([habit,target]) => {
+
+
+const done =
+habitCounts[habit];
+
+
+const percentage =
+Math.min(
+done/target,
+1
+);
+
+
+const div =
+document.createElement(
+"div"
+);
+
+
+div.style.marginBottom =
+"18px";
+
+
+div.innerHTML = `
+
+<div class="row between">
+
+<strong>
+${habit}
+</strong>
+
+<span>
+${done}/${target}
+</span>
+
+</div>
+
+
+<div class="progress">
+
+<div
+class="progress-bar"
+style="
+width:
+${percentage*100}%
+">
+
+</div>
+
+</div>
+
+`;
+
+
+box.appendChild(
+div
+);
+
+
+}
+);
+
+}
+
+
+
+/* ================= 行程 ================= */
+
+const planDay =
+document.getElementById(
+"planDay"
+);
+
+
+DAYS.forEach(
+day => {
+
+
+const option =
+document.createElement(
+"option"
+);
+
+
+option.value =
+day;
+
+
+option.textContent =
+DAY_ZH[day];
+
+
+planDay.appendChild(
+option
+);
+
+
+}
+);
+
+
+planDay.value =
+engDay(
+new Date()
+);
+
+
+planDay.addEventListener(
+"change",
+renderPlan
+);
+
+
+
+function renderPlan() {
+
+const day =
+planDay.value;
+
+
+const tasks =
+data.schedule[
+day
+] || [];
+
+
+const container =
+document.getElementById(
+"planTasks"
+);
+
+
+container.innerHTML = "";
+
+
+tasks.forEach(
+(task,index) => {
+
+
+const div =
+document.createElement(
+"div"
+);
+
+
+div.className =
+"task";
+
+
+div.innerHTML = `
+
+<div class="task-time">
+
+${escapeHTML(
+task.time
+)}
+
+</div>
+
+
+<div class="task-cat">
+
+${escapeHTML(
+task.cat
+)}
+
+</div>
+
+
+<div>
+
+${escapeHTML(
+task.desc
+)}
+
+</div>
+
+
+<div class="row">
+
+<button
+onclick="openEditTask(${index})">
+
+編輯
+
+</button>
+
+
+<button
+class="danger"
+onclick="deleteTask(${index})">
+
+刪除
+
+</button>
+
+</div>
+
+`;
+
+
+container.appendChild(
+div
+);
+
+
+}
+);
+
+}
+
+
+
+/* ================= 新增 / 編輯 ================= */
+
+let editingIndex =
+null;
+
+
+function openAddTask() {
+
+editingIndex =
+null;
+
+
+document.getElementById(
+"dialogTitle"
+).textContent =
+"新增任務";
+
+
+document.getElementById(
+"taskTime"
+).value = "";
+
+
+document.getElementById(
+"taskCat"
+).value =
+"日常/放鬆";
+
+
+document.getElementById(
+"taskDesc"
+).value = "";
+
+
+document.getElementById(
+"taskDialog"
+).showModal();
+
+}
+
+
+
+function openEditTask(
+index
+) {
+
+const day =
+planDay.value;
+
+
+const task =
+data.schedule[
+day
+][index];
+
+
+editingIndex =
+index;
+
+
+document.getElementById(
+"dialogTitle"
+).textContent =
+"編輯任務";
+
+
+document.getElementById(
+"taskTime"
+).value =
+task.time;
+
+
+document.getElementById(
+"taskCat"
+).value =
+task.cat;
+
+
+document.getElementById(
+"taskDesc"
+).value =
+task.desc;
+
+
+document.getElementById(
+"taskDialog"
+).showModal();
+
+}
+
+
+
+function closeDialog() {
+
+document.getElementById(
+"taskDialog"
+).close();
+
+}
+
+
+
+function saveTask() {
+
+const time =
+document.getElementById(
+"taskTime"
+).value
+.trim()
+.slice(0,50);
+
+
+const cat =
+document.getElementById(
+"taskCat"
+).value
+.trim();
+
+
+const desc =
+document.getElementById(
+"taskDesc"
+).value
+.trim()
+.slice(0,300);
+
+
+if (
+!time ||
+!cat ||
+!desc
+) {
+
+alert(
+"時段、分類、任務內容不能空白。"
+);
+
+return;
+
+}
+
+
+const task = {
+
+time,
+cat,
+desc
+
+};
+
+
+const day =
+planDay.value;
+
+
+if (
+editingIndex === null
+) {
+
+data.schedule[
+day
+].push(
+task
+);
+
+}
+else {
+
+data.schedule[
+day
+][editingIndex] =
+task;
+
+}
+
+
+saveData();
+
+closeDialog();
+
+renderAll();
+
+}
+
+
+
+function deleteTask(
+index
+) {
+
+const day =
+planDay.value;
+
+
+const task =
+data.schedule[
+day
+][index];
+
+
+if (
+!confirm(
+"確定刪除「"
++
+task.desc
++
+"」？"
+)
+) {
+
+return;
+
+}
+
+
+data.schedule[
+day
+].splice(
+index,
+1
+);
+
+
+saveData();
+
+renderAll();
+
+}
+
+
+
+/* ================= 歷史 ================= */
+
+function renderHistory() {
+
+const container =
+document.getElementById(
+"historyList"
+);
+
+
+container.innerHTML = "";
+
+
+const keys =
+Object.keys(
+data.history
+)
+.sort()
+.reverse();
+
+
+if (
+keys.length === 0
+) {
+
+container.innerHTML =
+'<div class="empty">目前還沒有歷史紀錄</div>';
+
+return;
+
+}
+
+
+keys.forEach(
+key => {
+
+
+const date =
+new Date(
+key + "T00:00:00"
+);
+
+
+const tasks =
+data.schedule[
+engDay(date)
+] || [];
+
+
+const statuses =
+statusesForDate(
+date
+);
+
+
+const completed =
+statuses.filter(
+status =>
+status === "已完成"
+).length;
+
+
+const score =
+statuses.length
+?
+statuses.reduce(
+(sum,status) =>
+sum + WEIGHT[status],
+0
+)
+/
+statuses.length
+:
+0;
+
+
+const div =
+document.createElement(
+"div"
+);
+
+
+div.className =
+"history-item";
+
+
+div.innerHTML = `
+
+<strong>
+
+${key}
+
+${DAY_ZH[
+engDay(date)
+]}
+
+</strong>
+
+
+<div class="sub">
+
+完成：
+${completed}/${tasks.length}
+
+　
+
+得分：
+${Math.round(
+score*100
+)}%
+
+</div>
+
+`;
+
+
+container.appendChild(
+div
+);
+
+
+}
+);
+
+}
+
+
+
+/* ================= 備份 ================= */
+
+function exportData() {
+
+const json =
+JSON.stringify(
+data,
+null,
+2
+);
+
+
+const blob =
+new Blob(
+[json],
+{
+type:
+"application/json"
+}
+);
+
+
+const url =
+URL.createObjectURL(
+blob
+);
+
+
+const link =
+document.createElement(
+"a"
+);
+
+
+link.href =
+url;
+
+
+link.download =
+"LifePlanner_"
++
+iso(
+new Date()
+)
++
+".json";
+
+
+link.click();
+
+
+setTimeout(
+() =>
+URL.revokeObjectURL(
+url
+),
+1000
+);
+
+}
+
+
+
+/* ================= 分頁 ================= */
+
+function switchTab(
+name,
+button
+) {
+
+document.querySelectorAll(
+".tab"
+).forEach(
+tab =>
+tab.classList.remove(
+"active"
+)
+);
+
+
+document.querySelectorAll(
+"nav button"
+).forEach(
+btn =>
+btn.classList.remove(
+"active"
+)
+);
+
+
+document.getElementById(
+name + "Tab"
+).classList.add(
+"active"
+);
+
+
+button.classList.add(
+"active"
+);
+
+
+if (
+name === "week"
+) {
+
+renderWeek();
+
+}
+
+
+if (
+name === "plan"
+) {
+
+renderPlan();
+
+}
+
+
+if (
+name === "history"
+) {
+
+renderHistory();
+
+}
+
+}
+
+
+
+/* ================= 安全輸出 ================= */
+
+function escapeHTML(
+text
+) {
+
+return String(
+text
+).replace(
+
+/[&<>"']/g,
+
+char => ({
+
+"&":"&amp;",
+"<":"&lt;",
+">":"&gt;",
+'"':"&quot;",
+"'":"&#039;"
+
+})[char]
+
+);
+
+}
+
+
+
+/* ================= 初始化 ================= */
+
+function renderAll() {
+
+document.getElementById(
+"todayText"
+).textContent =
+
+"今天："
++
+dateText(
+new Date()
+);
+
+
+renderToday();
+
+renderWeek();
+
+renderPlan();
+
+renderHistory();
+
+}
+
+
+renderAll();
+
+</script>
+
+</body>
+</html>
